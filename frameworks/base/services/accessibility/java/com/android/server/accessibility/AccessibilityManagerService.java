@@ -119,8 +119,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class AccessibilityManagerService extends IAccessibilityManager.Stub {
 
-    priivate static final boolean DATA_DRIVEN = true;
-
     private static final boolean DEBUG = false;
 
     private static final String LOG_TAG = "AccessibilityManagerService";
@@ -1078,9 +1076,6 @@ public class AccessibilityManagerService extends IAccessibilityManager.Stub {
     }
 
     private boolean readEnabledAccessibilityServicesLocked(UserState userState) {
-        if (DATA_DRIVEN){
-            Slog.d(LOG_TAG, "Data-Driven: readEnabledAccessibilityServicesLocked()");
-        }
         mTempComponentNameSet.clear();
         readComponentNamesFromSettingLocked(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
                 userState.mUserId, mTempComponentNameSet);
@@ -4382,9 +4377,6 @@ public class AccessibilityManagerService extends IAccessibilityManager.Stub {
 
         @Override
         public void onChange(boolean selfChange, Uri uri) {
-            if (DATA_DRIVEN){
-                Slog.d(LOG_TAG, "Data-Driven: onChange()");
-            }
             synchronized (mLock) {
                 // Profiles share the accessibility state of the parent. Therefore,
                 // we are checking for changes only the parent settings.
