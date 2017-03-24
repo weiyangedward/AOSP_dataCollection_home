@@ -128,6 +128,10 @@ import android.view.accessibility.CaptioningManager;
 import android.view.inputmethod.InputMethodManager;
 import android.view.textservice.TextServicesManager;
 
+/* Data-Driven */
+import android.datacollection.IDataCollection;
+import android.datacollection.DataCollectionManager;
+
 import java.util.HashMap;
 
 /**
@@ -149,6 +153,17 @@ final class SystemServiceRegistry {
     private SystemServiceRegistry() { }
 
     static {
+
+        /* Data-Driven */
+        registerService(Context.DATA_COLLECTION_SERVICE, DataCollectionManager.class,
+                new CachedServiceFetcher<DataCollectionManager>() {
+                    @Override
+                    public DataCollectionManager createService(ContextImpl ctx) {
+                        IBinder b = ServiceManager.getService(Context.DATA_COLLECTION_SERVICE);
+                        return new DataCollectionManager(ctx, IDataCollection.Stub.asInterface(b));
+                    }
+                });
+
         registerService(Context.ACCESSIBILITY_SERVICE, AccessibilityManager.class,
                 new CachedServiceFetcher<AccessibilityManager>() {
             @Override

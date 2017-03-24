@@ -3655,6 +3655,9 @@ public abstract class Context {
      */
     public static final String GATEKEEPER_SERVICE = "android.service.gatekeeper.IGateKeeperService";
 
+    /* Data-Driven */
+    public static final String DATA_COLLECTION_SERVICE = "data_collection_service";
+
     /**
      * Determine whether the given permission is allowed for a particular
      * process and user ID running in the system.

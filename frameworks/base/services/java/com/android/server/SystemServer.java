@@ -103,6 +103,8 @@ import com.android.server.usage.UsageStatsService;
 import com.android.server.vr.VrManagerService;
 import com.android.server.webkit.WebViewUpdateService;
 import com.android.server.wm.WindowManagerService;
+/* Data-Driven */
+import com.android.server.datacollection.DataCollectionService;
 
 import dalvik.system.VMRuntime;
 
@@ -661,6 +663,9 @@ public final class SystemServer {
             traceBeginAndSlog("PinnerService");
             mSystemServiceManager.startService(PinnerService.class);
             Trace.traceEnd(Trace.TRACE_TAG_SYSTEM_SERVER);
+
+            mSystemServiceManager.startService(DataCollectionService.class);
+
         } catch (RuntimeException e) {
             Slog.e("System", "******************************************");
             Slog.e("System", "************ Failure starting core service", e);
