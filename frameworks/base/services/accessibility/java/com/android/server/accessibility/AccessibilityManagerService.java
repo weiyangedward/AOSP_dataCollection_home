@@ -1086,6 +1086,7 @@ public class AccessibilityManagerService extends IAccessibilityManager.Stub {
     private boolean readEnabledAccessibilityServicesLocked(UserState userState) {
         if (DATA_DRIVEN){
             Slog.d(LOG_TAG, "Data-Driven: readEnabledAccessibilityServicesLocked()");
+            mDataCollectionManager.enableDataCollection();
         }
         mTempComponentNameSet.clear();
         readComponentNamesFromSettingLocked(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
