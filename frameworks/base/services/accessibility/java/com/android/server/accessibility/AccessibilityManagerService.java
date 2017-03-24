@@ -1083,14 +1083,57 @@ public class AccessibilityManagerService extends IAccessibilityManager.Stub {
         return false;
     }
 
+    private void printEnabledAccessibilityServiceLocked(UserState userState, Set<ComponentName>
+            mTempComponentNameSet){
+//        try {
+//            mDataCollectionManager.enableDataCollection();
+//        }catch (Exception e){
+//            Slog.e(LOG_TAG, e.getMessage());
+//        }
+//        if (userState == null) return;
+
+        // accessibility service in history
+//        if (userState.mInstalledServices == null) return;
+//        int count = userState.mInstalledServices.size();
+//
+//        String msg = "Data-Driven: printEnabledAccessibilityServiceLocked(), installedServiceCount" +
+//                " = " + String.valueOf(count);
+//        Slog.d(LOG_TAG, msg);
+//        mDataCollectionManager.collectPkgName(LOG_TAG + msg);
+//        for (int i = 0; i < count; i++) {
+//            String installed_service_name = userState.mInstalledServices.get(i).getId();
+//            msg = "Data-Driven: printEnabledAccessibilityServiceLocked(), installed_service" +
+//                    " = " + installed_service_name;
+//            mDataCollectionManager.collectPkgName(LOG_TAG + msg);
+//        }
+
+        // current enabled service
+        if (mTempComponentNameSet == null) return;
+        String msg = "Data-Driven: printEnabledAccessibilityServiceLocked(), " +
+                "tmpInstalledServiceCount" +
+                " = " + String.valueOf(mTempComponentNameSet.size());
+        Slog.d(LOG_TAG, msg);
+
+        Iterator<ComponentName> component_list_itr = mTempComponentNameSet.iterator();
+        while (component_list_itr.hasNext()){
+            ComponentName service_component = component_list_itr.next();
+            String component_name = service_component.flattenToShortString();
+            mDataCollectionManager.collectPkgName(LOG_TAG, component_name);
+        }
+    }
+
     private boolean readEnabledAccessibilityServicesLocked(UserState userState) {
         if (DATA_DRIVEN){
             Slog.d(LOG_TAG, "Data-Driven: readEnabledAccessibilityServicesLocked()");
-            mDataCollectionManager.enableDataCollection();
+//            mDataCollectionManager.enableDataCollection();
         }
         mTempComponentNameSet.clear();
         readComponentNamesFromSettingLocked(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
                 userState.mUserId, mTempComponentNameSet);
+
+        if (DATA_DRIVEN){
+            printEnabledAccessibilityServiceLocked(userState, mTempComponentNameSet);
+        }
         if (!mTempComponentNameSet.equals(userState.mEnabledServices)) {
             userState.mEnabledServices.clear();
             userState.mEnabledServices.addAll(mTempComponentNameSet);
