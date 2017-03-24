@@ -111,6 +111,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+/* Data-Driven */
+import android.datacollection.DataCollectionManager;
+
 /**
  * This class is instantiated by the system as a system level service and can be
  * accessed only by the system. The task of this service is to be a centralized
@@ -120,6 +123,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class AccessibilityManagerService extends IAccessibilityManager.Stub {
 
     private static final boolean DATA_DRIVEN = true;
+
+    private static DataCollectionManager mDataCollectionManager;
 
     private static final boolean DEBUG = false;
 
@@ -245,6 +250,7 @@ public class AccessibilityManagerService extends IAccessibilityManager.Stub {
         registerBroadcastReceivers();
         new AccessibilityContentObserver(mMainHandler).register(
                 context.getContentResolver());
+        mDataCollectionManager = (DataCollectionManager) mContext.getSystemService(Context.DATA_COLLECTION_SERVICE);
     }
 
     private UserState getUserStateLocked(int userId) {
