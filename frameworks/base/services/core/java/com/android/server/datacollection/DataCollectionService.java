@@ -7,12 +7,14 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.provider.BaseColumns;
 import android.util.Slog;
 import android.datacollection.IDataCollection;
 
 import com.android.server.SystemService;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
@@ -32,8 +34,7 @@ public class DataCollectionService extends SystemService {
         mContext = context;
         try {
             publishBinderService(Context.DATA_COLLECTION_SERVICE, mService);
-            mDataCollectionDatabaseHelper = new DataCollectionDatabaseHelper(mContext);
-            db = mDataCollectionDatabaseHelper.getWritableDatabase();
+            startDB();
         }catch (Exception e){
             Slog.e(TAG, e.toString());
         }
@@ -46,6 +47,15 @@ public class DataCollectionService extends SystemService {
         }
     }
 
+    private void startDB(){
+        mDataCollectionDatabaseHelper = new DataCollectionDatabaseHelper(mContext);
+        db = mDataCollectionDatabaseHelper.getWritableDatabase();
+        mDataCollectionDatabaseHelper.resetTable(db);
+    }
+
+    /*
+    * service interface
+    * */
     private final IBinder mService = new IDataCollection.Stub() {
 
         @Override
@@ -72,11 +82,11 @@ public class DataCollectionService extends SystemService {
             }
             try {
                 mDataCollectionDatabaseHelper.insertPkgName(db,
-                        DataCollectionDatabaseHelper.TABLENAME,
+                        FeedEntry.TABLE_NAME,
                         securityType,
                         pkgName,
-                        "true");
-                mDataCollectionDatabaseHelper.dump(db, DataCollectionDatabaseHelper.TABLENAME);
+                        "enabled");
+                mDataCollectionDatabaseHelper.dump(db, FeedEntry.TABLE_NAME);
             }catch (Exception e){
                 Slog.e(TAG, e.toString());
             }
@@ -85,14 +95,24 @@ public class DataCollectionService extends SystemService {
     };
 
     /*
-   * SQL database
+    * contract class for table names and attributes
+    * */
+    public static class FeedEntry implements BaseColumns {
+        public static final String TABLE_NAME = "pkg_names_list";
+        public static final String SECURITY_TYPE = "types";
+        public static final String PKGNAME = "pkgs";
+        public static final String ENABLED = "enabled";
+        public static final String CREATED_AT = "created_at";
+    }
+
+    /*
+   * SQLite database
    * */
     class DataCollectionDatabaseHelper extends SQLiteOpenHelper {
 
         private static final String DB_TAG = "DataCollectionDatabaseHelper";
         private static final String DB_NAME = "datacollection";
-        private static final int DB_VERSION = 1;
-        public static final String TABLENAME = "PKGS";
+        private static final int DB_VERSION = 2;
 
         DataCollectionDatabaseHelper(Context context){
             super(context, DB_NAME, null, DB_VERSION);
@@ -112,6 +132,9 @@ public class DataCollectionService extends SystemService {
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVerion){
             updateMyDatabase(db, 0, DB_VERSION);
+            if (DEBUG){
+                Slog.d(DB_TAG, "Data-Driven: onUpgrade()");
+            }
         }
 
         /*
@@ -119,13 +142,26 @@ public class DataCollectionService extends SystemService {
         * */
         private void updateMyDatabase(SQLiteDatabase db, int oldVersion, int newVersion){
             if (oldVersion < 1){
-                db.execSQL("CREATE TABLE " +  TABLENAME
-                        + " (_id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                        + "SECURITYTYPE TEXT, "
-                        + "PKGNAME TEXT, "
-                        + "ENABLED TEXT, "
-                        + "CREATED_AT TEXT);");
+                createTable(db);
             }
+        }
+
+        /*
+        * create a new table
+        * */
+        private void createTable(SQLiteDatabase db){
+            db.execSQL("CREATE TABLE " +  FeedEntry.TABLE_NAME
+                    + " (_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + FeedEntry.SECURITY_TYPE + " TEXT, "
+                    + FeedEntry.PKGNAME + " TEXT, "
+                    + FeedEntry.ENABLED + " TEXT, "
+                    + FeedEntry.CREATED_AT +");");
+        }
+
+        public void resetTable(SQLiteDatabase db){
+            db.execSQL("delete from "+ FeedEntry.TABLE_NAME);
+//            db.delete(FeedEntry.TABLE_NAME, null, null);
+//            createTable(db);
         }
 
         /*
@@ -169,7 +205,7 @@ public class DataCollectionService extends SystemService {
                     sb.append(cursor.getString(1) + " ");
                     sb.append(cursor.getString(2) + " ");
                     sb.append(cursor.getString(3) + " ");
-                    sb.append(cursor.getString(4) + " ");
+                    sb.append(cursor.getString(4));
                     Slog.d(DB_TAG, "Data-Driven: " + sb.toString());
                 }
                 cursor.close();
@@ -182,8 +218,7 @@ public class DataCollectionService extends SystemService {
         * return current data and time
         * */
         public String getDateTime() {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(
-                    "yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date date = new Date();
             return dateFormat.format(date);
         }
@@ -199,28 +234,14 @@ public class DataCollectionService extends SystemService {
 
             try {
                 ContentValues dataValues = new ContentValues();
-                dataValues.put("SECURITYTYPE", securityType);
-                dataValues.put("PKGNAME", pkgName);
-                dataValues.put("ENABLED", enabled);
-                dataValues.put("CREATED_AT", getDateTime());
+                dataValues.put(FeedEntry.SECURITY_TYPE, securityType);
+                dataValues.put(FeedEntry.PKGNAME, pkgName);
+                dataValues.put(FeedEntry.ENABLED, enabled);
+                dataValues.put(FeedEntry.CREATED_AT, getDateTime());
                 long newRowId = db.insert(table, null, dataValues);
+                Slog.d(DB_TAG, "Data-Driven: insert to " + Integer.toString((int)newRowId));
             }catch (Exception e){
-                Slog.e(DB_TAG, e.toString());
-            }
-            Slog.d(DB_TAG, "Data-Driven: insert to " + Integer.toString((int)newRowId));
-        }
-
-        /*
-        * delete all records in table
-        * */
-        public void reset(SQLiteDatabase db, String table){
-            if (DEBUG){
-                Slog.d(DB_TAG, "Data-Driven: reset()");
-            }
-            try{
-                db.execSQL("delete from " + table);
-            }catch (Exception e){
-                e.printStackTrace();
+                Slog.e(DB_TAG, "Data-Driven: " + e.toString());
             }
         }
     }
