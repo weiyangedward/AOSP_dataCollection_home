@@ -55,7 +55,7 @@ public class DataCollectionManager {
         }
     }
 
-    public void collectPkgName(String securityType, String pkgName){
+    public void collectPkgName(int securityType, String pkgName){
         try {
             if (!systemBooted()) {
                 Slog.d(TAG, "Data-Driven: system not boot complete!");
