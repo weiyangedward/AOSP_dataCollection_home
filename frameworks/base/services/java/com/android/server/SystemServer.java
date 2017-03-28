@@ -557,6 +557,9 @@ public final class SystemServer {
         boolean isEmulator = SystemProperties.get("ro.kernel.qemu").equals("1");
 
         try {
+            /* start DataCollectionService before other services with hooks */
+            mSystemServiceManager.startService(DataCollectionService.class);
+
             Slog.i(TAG, "Reading configuration...");
             SystemConfig.getInstance();
 
@@ -663,9 +666,6 @@ public final class SystemServer {
             traceBeginAndSlog("PinnerService");
             mSystemServiceManager.startService(PinnerService.class);
             Trace.traceEnd(Trace.TRACE_TAG_SYSTEM_SERVER);
-
-            mSystemServiceManager.startService(DataCollectionService.class);
-
         } catch (RuntimeException e) {
             Slog.e("System", "******************************************");
             Slog.e("System", "************ Failure starting core service", e);

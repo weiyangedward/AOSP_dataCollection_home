@@ -5,15 +5,18 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.util.Slog;
-import android.datacollection.IDataCollection;
+import android.datacollection.*;
 
 import com.android.server.SystemService;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -28,10 +31,8 @@ public class DataCollectionService extends SystemService {
 
     public DataCollectionService(Context context){
         super(context);
-        if (DEBUG){
-            Slog.d(TAG, "Data-Driven: DataCollectionService constructor");
-        }
         mContext = context;
+        if (DEBUG) Slog.d(TAG, "Data-Driven: DataCollectionService constructor");
         try {
             publishBinderService(Context.DATA_COLLECTION_SERVICE, mService);
             startDB();
@@ -42,15 +43,14 @@ public class DataCollectionService extends SystemService {
 
     @Override
     public void onStart(){
-        if (DEBUG) {
-            Slog.d(TAG, "Data-Driven: onStart()");
-        }
+        if (DEBUG) Slog.d(TAG, "Data-Driven: onStart()");
     }
 
     private void startDB(){
+        if (DEBUG) Slog.d(TAG, "Data-Driven: startDB()");
         mDataCollectionDatabaseHelper = new DataCollectionDatabaseHelper(mContext);
         db = mDataCollectionDatabaseHelper.getWritableDatabase();
-        mDataCollectionDatabaseHelper.resetTable(db);
+//        mDataCollectionDatabaseHelper.resetTable(db);
     }
 
     /*
@@ -60,16 +60,12 @@ public class DataCollectionService extends SystemService {
 
         @Override
         public void enableDataCollection() throws RemoteException {
-            if (DEBUG) {
-                Slog.d(TAG, "Data-Driven: Call enableDataCollection");
-            }
+            if (DEBUG) Slog.d(TAG, "Data-Driven: Call enableDataCollection");
         }
 
         @Override
         public void disableDataCollection() throws RemoteException {
-            if (DEBUG) {
-                Slog.d(TAG, "Data-Driven: Call disableDataCollection");
-            }
+            if (DEBUG) Slog.d(TAG, "Data-Driven: Call disableDataCollection");
         }
 
         /*
@@ -77,9 +73,7 @@ public class DataCollectionService extends SystemService {
         * */
         @Override
         public void collectPkgName(String securityType, String pkgName) throws RemoteException {
-            if (DEBUG){
-                Slog.d(TAG, "Data-Driven: collectPkgName() " + securityType + " " + pkgName);
-            }
+            if (DEBUG) Slog.d(TAG, "Data-Driven: collectPkgName() " + securityType + " " + pkgName);
             try {
                 mDataCollectionDatabaseHelper.insertPkgName(db,
                         FeedEntry.TABLE_NAME,
@@ -88,8 +82,36 @@ public class DataCollectionService extends SystemService {
                         "enabled");
                 mDataCollectionDatabaseHelper.dump(db, FeedEntry.TABLE_NAME);
             }catch (Exception e){
-                Slog.e(TAG, e.toString());
+                Slog.e(TAG, "Data-Driven: " + e.toString());
             }
+        }
+
+        @Override
+        public void notifyDataEvent(Bundle bundle) throws RemoteException {
+            if (DEBUG) Slog.d(TAG, "Data-Driven: Call notifyDataEvent");
+            int eventType = bundle.getInt(DataCollectionManager.Contractor.EVENT_TYPE);
+            switch (eventType) {
+                case DataCollectionManager.Contractor.DEVICE_ADMIN_EVENT:
+                    break;
+                case DataCollectionManager.Contractor.ACCESSIBILITY_EVENT:
+                    ArrayList<String> enabledServiceList = bundle.getStringArrayList
+                            (DataCollectionManager.Contractor
+                                    .ENABLED_ACCESSIBILITY_SERVICES);
+
+                    if (enabledServiceList == null) {
+                        Slog.d(TAG, "Data-Driven: Installed Service List or Enabled Service List is null for Accessibility Service");
+                    } else {
+                        Slog.d(TAG, "Data-Driven: Num of Enabled Accessibility Services: " + Integer.toString(enabledServiceList.size()));
+                        Slog.d(TAG, "Data-Driven: Enabled Accessibility Services: " + Arrays.toString(enabledServiceList.toArray()));
+                    }
+                    break;
+                case DataCollectionManager.Contractor.USAGE_STATS_EVENT:
+                    break;
+                default:
+                    Slog.e(TAG, "Data-Driven: Ignore Unknown Data Event");
+                    break;
+            }
+
         }
 
     };
@@ -116,25 +138,19 @@ public class DataCollectionService extends SystemService {
 
         DataCollectionDatabaseHelper(Context context){
             super(context, DB_NAME, null, DB_VERSION);
-            if (DEBUG){
-                Slog.d(DB_TAG, "Data-Driven: constructor");
-            }
+            if (DEBUG) Slog.d(DB_TAG, "Data-Driven: constructor");
         }
 
         @Override
         public void onCreate(SQLiteDatabase db){
             updateMyDatabase(db, 0, DB_VERSION);
-            if (DEBUG){
-                Slog.d(DB_TAG, "Data-Driven: onCreate()");
-            }
+            if (DEBUG) Slog.d(DB_TAG, "Data-Driven: onCreate()");
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVerion){
             updateMyDatabase(db, 0, DB_VERSION);
-            if (DEBUG){
-                Slog.d(DB_TAG, "Data-Driven: onUpgrade()");
-            }
+            if (DEBUG) Slog.d(DB_TAG, "Data-Driven: onUpgrade()");
         }
 
         /*
@@ -190,7 +206,7 @@ public class DataCollectionService extends SystemService {
         * print all records in a table
         * */
         public void dump(SQLiteDatabase db, String table){
-            Slog.d(DB_TAG, "Data-Driven: dump()");
+            if (DEBUG) Slog.d(DB_TAG, "Data-Driven: dump()");
             try{
                 Cursor cursor = db.query(
                         table,
@@ -226,10 +242,7 @@ public class DataCollectionService extends SystemService {
         * */
         private void insertPkgName(SQLiteDatabase db, String table, String securityType, String
                 pkgName, String enabled){
-            if (DEBUG){
-                Slog.d(DB_TAG, "Data-Driven: insertPkgName() " + securityType + " " + pkgName);
-            }
-
+            if (DEBUG) Slog.d(DB_TAG, "Data-Driven: insertPkgName() " + securityType + " " + pkgName);
             try {
                 ContentValues dataValues = new ContentValues();
                 dataValues.put(FeedEntry.SECURITY_TYPE, securityType);

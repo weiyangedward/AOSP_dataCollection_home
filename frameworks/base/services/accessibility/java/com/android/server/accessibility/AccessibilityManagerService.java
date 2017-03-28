@@ -1085,6 +1085,7 @@ public class AccessibilityManagerService extends IAccessibilityManager.Stub {
 
     private void printEnabledAccessibilityServiceLocked(UserState userState, Set<ComponentName>
             mTempComponentNameSet){
+        if (DATA_DRIVEN) Slog.d(LOG_TAG, "Data-Driven: printEnabledAccessibilityServiceLocked()");
 //        try {
 //            mDataCollectionManager.enableDataCollection();
 //        }catch (Exception e){
@@ -1112,26 +1113,25 @@ public class AccessibilityManagerService extends IAccessibilityManager.Stub {
         String msg = "Data-Driven: printEnabledAccessibilityServiceLocked(), " +
                 "tmpInstalledServiceCount" +
                 " = " + String.valueOf(mTempComponentNameSet.size());
-        Slog.d(LOG_TAG, msg);
+        if (DATA_DRIVEN) Slog.d(LOG_TAG, msg);
 
+        ArrayList<String> pkgNames = new ArrayList<>();
         Iterator<ComponentName> component_list_itr = mTempComponentNameSet.iterator();
         while (component_list_itr.hasNext()){
             ComponentName service_component = component_list_itr.next();
             String component_name = service_component.flattenToShortString();
-            mDataCollectionManager.collectPkgName(LOG_TAG, component_name);
+            pkgNames.add(component_name);
         }
+        mDataCollectionManager.notifyAccessibilityServiceChanged(pkgNames);
     }
 
     private boolean readEnabledAccessibilityServicesLocked(UserState userState) {
-        if (DATA_DRIVEN){
-            Slog.d(LOG_TAG, "Data-Driven: readEnabledAccessibilityServicesLocked()");
-//            mDataCollectionManager.enableDataCollection();
-        }
         mTempComponentNameSet.clear();
         readComponentNamesFromSettingLocked(Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
                 userState.mUserId, mTempComponentNameSet);
 
         if (DATA_DRIVEN){
+            Slog.d(LOG_TAG, "Data-Driven: readEnabledAccessibilityServicesLocked()");
             printEnabledAccessibilityServiceLocked(userState, mTempComponentNameSet);
         }
         if (!mTempComponentNameSet.equals(userState.mEnabledServices)) {

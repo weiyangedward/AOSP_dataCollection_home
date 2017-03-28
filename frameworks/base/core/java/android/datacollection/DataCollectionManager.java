@@ -1,11 +1,14 @@
 package android.datacollection;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.util.Slog;
 import android.datacollection.IDataCollection;
+
+import java.util.ArrayList;
 
 public class DataCollectionManager {
     private static final boolean DEBUG = true;
@@ -65,6 +68,30 @@ public class DataCollectionManager {
             }
         }catch(Exception e){
             Slog.e(TAG, e.getMessage());
+        }
+    }
+
+    public static class Contractor {
+        public static final String EVENT_TYPE = "knox.metric.event.type";
+
+        public static final int DEVICE_ADMIN_EVENT = 0;
+        public static final int ACCESSIBILITY_EVENT = 1;
+        public static final int USAGE_STATS_EVENT = 2;
+
+        public static final String ENABLED_ACCESSIBILITY_SERVICES = "knox.metric.accessibility.enabled";
+    }
+
+    public void notifyAccessibilityServiceChanged(ArrayList<String> enabledServiceList) {
+        if (DEBUG) Slog.d(TAG, "Data-Driven: notifyAccessibilityServiceChanged()");
+        Bundle bundle = new Bundle();
+        bundle.putInt(Contractor.EVENT_TYPE, Contractor.ACCESSIBILITY_EVENT);
+        bundle.putStringArrayList(Contractor.ENABLED_ACCESSIBILITY_SERVICES, enabledServiceList);
+
+        try {
+            mService.notifyDataEvent(bundle);
+        } catch (RemoteException e) {
+            Slog.e(TAG, "Data-Driven: Fail to send data event to DataCollectionService. " +
+                    "Error: " + e.getMessage());
         }
     }
 
