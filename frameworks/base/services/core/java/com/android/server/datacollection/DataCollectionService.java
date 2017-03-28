@@ -160,8 +160,6 @@ public class DataCollectionService extends SystemService {
 
         public void resetTable(SQLiteDatabase db){
             db.execSQL("delete from "+ FeedEntry.TABLE_NAME);
-//            db.delete(FeedEntry.TABLE_NAME, null, null);
-//            createTable(db);
         }
 
         /*
